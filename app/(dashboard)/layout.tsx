@@ -4,7 +4,7 @@ import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { useRequireAuth } from "@/hooks/useAuth";
-import { LoaderIcon } from "lucide-react";
+import { Loader2Icon } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -17,7 +17,7 @@ export default function DashboardLayout({
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <LoaderIcon className="size-8 animate-spin text-primary" />
+        <Loader2Icon className="size-8 animate-spin text-primary" />
       </div>
     );
   }

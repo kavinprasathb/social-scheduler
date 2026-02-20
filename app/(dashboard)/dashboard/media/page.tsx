@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +41,9 @@ export default function MediaPage() {
     if (files.length === 0) return;
     try {
       await uploadFiles(files);
+      toast.success(`${files.length} file${files.length > 1 ? "s" : ""} uploaded!`);
     } catch (error) {
-      console.error("Upload failed:", error);
+      toast.error(error instanceof Error ? error.message : "Upload failed.");
     }
     // Reset input
     if (e.target) e.target.value = "";
@@ -51,6 +53,9 @@ export default function MediaPage() {
     setDeletingId(item.id);
     try {
       await deleteMedia(item);
+      toast.success("Media deleted.");
+    } catch {
+      toast.error("Failed to delete media.");
     } finally {
       setDeletingId(null);
     }

@@ -10,7 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator";
 import { signUpWithEmail, signInWithGoogle } from "@/lib/firebase/auth";
 import { useAuth } from "@/hooks/useAuth";
-import { LoaderIcon } from "lucide-react";
+import { Loader2Icon } from "lucide-react";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -30,7 +30,7 @@ export default function SignupPage() {
   if (authLoading || user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background hero-gradient">
-        <LoaderIcon className="size-8 animate-spin text-primary" />
+        <Loader2Icon className="size-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -179,7 +179,7 @@ export default function SignupPage() {
                 />
               </div>
               <Button type="submit" size="xl" className="w-full" disabled={loading}>
-                {loading && <LoaderIcon className="size-4 animate-spin" />}
+                {loading && <Loader2Icon className="size-4 animate-spin" />}
                 Create Account
               </Button>
             </form>

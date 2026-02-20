@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,8 +42,13 @@ export default function SettingsPage() {
   }, [profile]);
 
   const handleSave = async () => {
-    const tzValue = timezone.split(" ")[0]; // Extract timezone ID from display string
-    await updateProfile({ displayName, timezone: tzValue });
+    try {
+      const tzValue = timezone.split(" ")[0];
+      await updateProfile({ displayName, timezone: tzValue });
+      toast.success("Settings saved!");
+    } catch {
+      toast.error("Failed to save settings.");
+    }
   };
 
   const handleCancel = () => {

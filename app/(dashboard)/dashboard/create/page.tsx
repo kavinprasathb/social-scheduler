@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -118,8 +119,10 @@ export default function CreatePostPage() {
         media: uploadedMedia,
       });
 
+      toast.success(status === "draft" ? "Draft saved!" : "Post scheduled!");
       router.push("/dashboard/posts");
     } catch (error) {
+      toast.error("Failed to save post. Please try again.");
       console.error("Failed to save post:", error);
     } finally {
       setSaving(false);

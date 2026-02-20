@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +73,9 @@ export default function PostsPage() {
     setDeletingId(id);
     try {
       await removePost(id);
+      toast.success("Post deleted.");
+    } catch {
+      toast.error("Failed to delete post.");
     } finally {
       setDeletingId(null);
     }
