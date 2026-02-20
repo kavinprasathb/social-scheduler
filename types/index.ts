@@ -94,6 +94,7 @@ export interface Media {
   mimeType: string;
   sizeBytes: number;
   originalName: string;
+  storagePath: string;
   uploadedAt: Timestamp;
   usedInPosts: string[];
 }

@@ -1,16 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
+import { getPostsByDateRange } from "@/lib/firebase/firestore";
+import type { Post, PlatformType } from "@/types";
 
 const views = ["Day", "Week", "Month"] as const;
 type View = (typeof views)[number];
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAYS_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
+
+const platformDotColors: Record<PlatformType, string> = {
+  instagram: "bg-pink-500",
+  facebook: "bg-blue-500",
+  youtube: "bg-red-500",
+  threads: "bg-gray-500",
+  linkedin: "bg-sky-500",
+};
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -19,11 +30,16 @@ function getFirstDayOfMonth(year: number, month: number) {
   return new Date(year, month, 1).getDay();
 }
 
+type PostWithId = Post & { id: string };
+
 export default function CalendarPage() {
+  const { user } = useAuth();
   const [activeView, setActiveView] = useState<View>("Month");
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [posts, setPosts] = useState<PostWithId[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
@@ -31,6 +47,36 @@ export default function CalendarPage() {
     month: "long",
     year: "numeric",
   });
+
+  const fetchPosts = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const start = new Date(currentYear, currentMonth, 1);
+      const end = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+      const data = await getPostsByDateRange(user.uid, start, end);
+      setPosts(data);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, currentYear, currentMonth]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  // Group posts by day number
+  const postsByDay = useMemo(() => {
+    const map: Record<number, PostWithId[]> = {};
+    for (const post of posts) {
+      if (post.scheduledAt?.toDate) {
+        const day = post.scheduledAt.toDate().getDate();
+        if (!map[day]) map[day] = [];
+        map[day].push(post);
+      }
+    }
+    return map;
+  }, [posts]);
 
   const prevMonth = () => {
     if (currentMonth === 0) {
@@ -53,6 +99,12 @@ export default function CalendarPage() {
     day === today.getDate() &&
     currentMonth === today.getMonth() &&
     currentYear === today.getFullYear();
+
+  const formatDateParam = (day: number) => {
+    const m = String(currentMonth + 1).padStart(2, "0");
+    const d = String(day).padStart(2, "0");
+    return `${currentYear}-${m}-${d}`;
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6 page-enter">
@@ -128,6 +180,7 @@ export default function CalendarPage() {
               const day = i + 1;
               const cellIndex = firstDay + i;
               const isLastCol = (cellIndex + 1) % 7 === 0;
+              const dayPosts = postsByDay[day] || [];
 
               return (
                 <div
@@ -146,12 +199,36 @@ export default function CalendarPage() {
                     {day}
                   </span>
 
+                  {/* Post indicators */}
+                  {dayPosts.length > 0 && (
+                    <div className="mt-0.5 flex flex-wrap gap-0.5 sm:mt-1">
+                      {dayPosts.slice(0, 3).map((post) => (
+                        <div key={post.id} className="flex gap-0.5">
+                          {post.targetPlatforms.slice(0, 2).map((p) => (
+                            <div
+                              key={p}
+                              className={`size-1.5 rounded-full sm:size-2 ${platformDotColors[p]}`}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                      {dayPosts.length > 3 && (
+                        <span className="text-[9px] text-muted-foreground sm:text-[10px]">
+                          +{dayPosts.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Hover add button */}
-                  <div className="absolute bottom-1 right-1 hidden opacity-0 transition-opacity group-hover:opacity-100 sm:block">
-                    <div className="flex size-5 items-center justify-center rounded bg-primary/10 text-primary">
+                  <Link
+                    href={`/dashboard/create?date=${formatDateParam(day)}`}
+                    className="absolute bottom-1 right-1 hidden opacity-0 transition-opacity group-hover:opacity-100 sm:block"
+                  >
+                    <div className="flex size-5 items-center justify-center rounded bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground">
                       <PlusIcon className="size-3" />
                     </div>
-                  </div>
+                  </Link>
                 </div>
               );
             })}
