@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { type User } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   LayoutDashboardIcon,
   CalendarDaysIcon,
@@ -14,6 +15,7 @@ import {
   Link2Icon,
   SettingsIcon,
   XIcon,
+  LogOutIcon,
 } from "lucide-react";
 
 const navItems = [
@@ -29,9 +31,11 @@ const navItems = [
 interface SidebarProps {
   isMobileOpen?: boolean;
   onMobileClose?: () => void;
+  user?: User | null;
+  onLogout?: () => void;
 }
 
-export default function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
+export default function Sidebar({ isMobileOpen, onMobileClose, user, onLogout }: SidebarProps) {
   const pathname = usePathname();
 
   const sidebarContent = (
@@ -92,20 +96,30 @@ export default function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
 
       {/* User */}
       <div className="p-4">
-        <div className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-accent">
+        <div className="flex items-center gap-3 rounded-lg p-2">
           <Avatar className="size-9 border border-border">
+            {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />}
             <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-              U
+              {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 overflow-hidden">
             <p className="truncate text-sm font-medium text-sidebar-foreground">
-              User
+              {user?.displayName || "User"}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              user@example.com
+              {user?.email || ""}
             </p>
           </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 text-muted-foreground hover:text-destructive"
+            onClick={onLogout}
+            title="Sign out"
+          >
+            <LogOutIcon className="size-4" />
+          </Button>
         </div>
       </div>
     </div>

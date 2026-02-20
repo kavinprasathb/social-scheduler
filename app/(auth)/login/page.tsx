@@ -1,30 +1,85 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { signInWithEmail, signInWithGoogle } from "@/lib/firebase/auth";
+import { useAuth } from "@/hooks/useAuth";
+import { LoaderIcon } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background hero-gradient">
+        <LoaderIcon className="size-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login:", { email, password });
+    setError("");
+    setLoading(true);
+    try {
+      await signInWithEmail(email, password);
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to sign in";
+      if (message.includes("invalid-credential") || message.includes("wrong-password")) {
+        setError("Invalid email or password.");
+      } else if (message.includes("user-not-found")) {
+        setError("No account found with this email.");
+      } else if (message.includes("too-many-requests")) {
+        setError("Too many attempts. Please try again later.");
+      } else {
+        setError(message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleLogin = async () => {
-    console.log("Google login");
+    setError("");
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Google sign-in failed";
+      if (message.includes("popup-closed-by-user")) {
+        // User closed the popup, not an error
+      } else {
+        setError(message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8 hero-gradient">
       <div className="w-full max-w-md page-enter">
-        {/* Back to home */}
         <Link
           href="/"
           className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -51,11 +106,18 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="space-y-5 px-6 py-6 sm:px-8">
+            {error && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
             <Button
               variant="outline"
               size="xl"
               className="w-full"
               onClick={handleGoogleLogin}
+              disabled={loading}
             >
               <svg className="size-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -84,6 +146,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
+                  disabled={loading}
                   className="h-11 px-4 text-[0.95rem] sm:h-12"
                 />
               </div>
@@ -96,10 +159,12 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
+                  disabled={loading}
                   className="h-11 px-4 text-[0.95rem] sm:h-12"
                 />
               </div>
-              <Button type="submit" size="xl" className="w-full">
+              <Button type="submit" size="xl" className="w-full" disabled={loading}>
+                {loading && <LoaderIcon className="size-4 animate-spin" />}
                 Sign In
               </Button>
             </form>

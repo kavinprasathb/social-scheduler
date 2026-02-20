@@ -1,25 +1,81 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { signUpWithEmail, signInWithGoogle } from "@/lib/firebase/auth";
+import { useAuth } from "@/hooks/useAuth";
+import { LoaderIcon } from "lucide-react";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background hero-gradient">
+        <LoaderIcon className="size-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Signup:", { name, email, password });
+    setError("");
+    setLoading(true);
+    try {
+      await signUpWithEmail(email, password, name);
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to create account";
+      if (message.includes("email-already-in-use")) {
+        setError("An account with this email already exists.");
+      } else if (message.includes("weak-password")) {
+        setError("Password should be at least 6 characters.");
+      } else if (message.includes("invalid-email")) {
+        setError("Please enter a valid email address.");
+      } else {
+        setError(message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignup = async () => {
-    console.log("Google signup");
+    setError("");
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Google sign-in failed";
+      if (message.includes("popup-closed-by-user")) {
+        // User closed the popup
+      } else {
+        setError(message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,11 +107,18 @@ export default function SignupPage() {
           </CardHeader>
 
           <CardContent className="space-y-5 px-6 py-6 sm:px-8">
+            {error && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
             <Button
               variant="outline"
               size="xl"
               className="w-full"
               onClick={handleGoogleSignup}
+              disabled={loading}
             >
               <svg className="size-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -84,6 +147,7 @@ export default function SignupPage() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="John Doe"
                   required
+                  disabled={loading}
                   className="h-11 px-4 text-[0.95rem] sm:h-12"
                 />
               </div>
@@ -96,6 +160,7 @@ export default function SignupPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
+                  disabled={loading}
                   className="h-11 px-4 text-[0.95rem] sm:h-12"
                 />
               </div>
@@ -106,13 +171,15 @@ export default function SignupPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 8 characters"
+                  placeholder="Min 6 characters"
                   required
-                  minLength={8}
+                  minLength={6}
+                  disabled={loading}
                   className="h-11 px-4 text-[0.95rem] sm:h-12"
                 />
               </div>
-              <Button type="submit" size="xl" className="w-full">
+              <Button type="submit" size="xl" className="w-full" disabled={loading}>
+                {loading && <LoaderIcon className="size-4 animate-spin" />}
                 Create Account
               </Button>
             </form>

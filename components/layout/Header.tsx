@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { type User } from "firebase/auth";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BellIcon, MenuIcon } from "lucide-react";
 
 const pageTitles: Record<string, string> = {
@@ -17,9 +18,10 @@ const pageTitles: Record<string, string> = {
 
 interface HeaderProps {
   onMenuClick: () => void;
+  user?: User | null;
 }
 
-export default function Header({ onMenuClick }: HeaderProps) {
+export default function Header({ onMenuClick, user }: HeaderProps) {
   const pathname = usePathname();
   const title = pageTitles[pathname] || "Dashboard";
 
@@ -47,8 +49,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </Button>
         {/* Mobile avatar (visible only on small screens since sidebar has user) */}
         <Avatar className="size-8 border border-border md:hidden">
+          {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || "User"} />}
           <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-            U
+            {user?.displayName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
           </AvatarFallback>
         </Avatar>
       </div>
